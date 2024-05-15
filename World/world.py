@@ -17,9 +17,11 @@ class World:
         self.add_immune_entities()
         self.add_infected_entity()
         self.add_healthy_entities()
-        # TODO: Add symptoms. (20% sintomáticos ou assintomáticos; dos 20% => 2% graves (80% chance de morte); 1,19% morte)
         # TODO: Search every infected entity, get its neighbors and infect them if they're not immune.
+        # NOTE: np.where WILL do the job, trust me.
         # TODO: Move the infected entity to a random adjacent position. (they should not overlap, dead entities should not move.)
+        # NOTE: "(i + 1 + N) % N" or "(i - 1 + N) % N" work for both rows and cols, just adjust the +1 or -1 if necessary.
+
         # TODO: New infected entities should inherit the property from the infected entity.
         # TODO: Entities heal after 20 steps if not dead (1 step per second) and turn into immune entities.
         # TODO: After every step, log the amount of sintomáticos, assintomáticos, curados e mortos.
