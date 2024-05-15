@@ -1,7 +1,10 @@
 """File responsible for everything related to an entity."""
 from typing import Tuple
+import numpy as np
 
-from .entity_type import EntityType # pylint: disable=E0402
+
+# pylint: disable=E0402
+from .entity_type import EntityType
 
 
 class Entity:
@@ -23,6 +26,7 @@ class Entity:
         self.is_infected: bool = is_infected
         self.is_immune: bool = is_immune if not is_infected else False
         self.entity_type: EntityType = self.define_entity_type()
+        self.get_symptoms()
 
     def define_entity_type(self) -> EntityType:
         """Define the entity's type.
@@ -53,11 +57,22 @@ class Entity:
         """
         self.position = new_position
 
+    def get_symptoms(self) -> None:
+        """Defines the symptoms for an infected entity."""
+        if self.is_infected:
+            symptoms = ['SINTOMATICO', 'ASSINTOMATICO', 'GRAVE', 'MORTE']
+            probabilities = [0.20, 0.20, 0.02, 0.0119]
+            # Normalize the probabilities, making the sum up to 1 (or 100%).
+            probs_normalized = [prob / sum(probabilities) for prob in probabilities]
+            self.symptom = np.random.choice(a=symptoms, p=probs_normalized)
+
     def get_infected(self) -> None:
         """Turn this entity into a infected entity if it's neither immune nor infected."""
         if not (self.is_immune or self.is_infected):
             self.change_entity_type()
+            self.get_symptoms()
 
     def infect_neighbors(self) -> None:
         # TODO: Not yet implemented.
+        # NOTE: This should probabily be on World script.
         print("TODO: Not yet implemented")
