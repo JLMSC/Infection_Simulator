@@ -1,5 +1,4 @@
 """File responsible for everything related to an entity."""
-from typing import Tuple
 import numpy as np
 
 
@@ -7,22 +6,23 @@ import numpy as np
 from .entity_type import EntityType
 
 
+# TODO: Add variable to count the amount of steps alive.
 class Entity:
     """Represents an entity, both healthy or infected."""
 
-    def __init__(self, position: Tuple[int, int], is_infected: bool, is_immune: bool) -> None:
+    def __init__(self, position: tuple[int, int], is_infected: bool, is_immune: bool) -> None:
         """Initializes an entity at a specified position.
 
         Parameters
         ----------
-        position : Tuple[int, int]
+        position : tuple[int, int]
             The position where the entity spawned.
         is_infected : bool
             Defines if the entity is healthy or infected.
         is_immune : bool
             Declares if the entity is immune (will always be healthy).
         """
-        self.position: Tuple[int, int] = position
+        self.position: tuple[int, int] = position
         self.is_infected: bool = is_infected
         self.is_immune: bool = is_immune if not is_infected else False
         self.entity_type: EntityType = self.define_entity_type()
@@ -43,16 +43,16 @@ class Entity:
     def change_entity_type(self) -> None:
         """Change the entity's type."""
         if self.entity_type == EntityType.HEALTHY:
-            self.entity_type = EntityType.HEALTHY
-        else:
             self.entity_type = EntityType.INFECTED
+        else:
+            self.entity_type = EntityType.HEALTHY
 
-    def update_position(self, new_position: Tuple[int, int]) -> None:
+    def update_position(self, new_position: tuple[int, int]) -> None:
         """Updates the entity's position.
 
         Parameters
         ----------
-        new_position : Tuple[int, int]
+        new_position : tuple[int, int]
             The new entity's position.
         """
         self.position = new_position
@@ -69,10 +69,6 @@ class Entity:
     def get_infected(self) -> None:
         """Turn this entity into a infected entity if it's neither immune nor infected."""
         if not (self.is_immune or self.is_infected):
+            self.is_infected = True
             self.change_entity_type()
             self.get_symptoms()
-
-    def infect_neighbors(self) -> None:
-        # TODO: Not yet implemented.
-        # NOTE: This should probabily be on World script.
-        print("TODO: Not yet implemented")
