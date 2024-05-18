@@ -47,6 +47,14 @@ class Entity:
         else:
             self.entity_type = EntityType.HEALTHY
 
+    def move_randomly(self, world_size: int) -> None:
+        """Randomly move this entity to an adjacent position."""
+        adjacent_offsets = ((1, 0), (-1, 0), (0, -1), (0, 1))
+        selected_offset = adjacent_offsets[int(np.random.randint(low=0, high=len(adjacent_offsets)))]
+        next_position_x = (selected_offset[0] + self.position[0] + world_size) % world_size
+        next_position_y = (selected_offset[1] + self.position[1] + world_size) % world_size
+        self.update_position(new_position=(next_position_x, next_position_y))
+
     def update_position(self, new_position: tuple[int, int]) -> None:
         """Updates the entity's position.
 

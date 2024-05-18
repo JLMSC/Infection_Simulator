@@ -19,9 +19,6 @@ class World:
         self.add_healthy_entities()
         self.save_state()
 
-        # TODO: Move the infected entity to a random adjacent position. (they should not overlap, dead entities should not move.)
-        # NOTE: "(i + 1 + N) % N" or "(i - 1 + N) % N" work for both rows and cols, just adjust the +1 or -1 if necessary.
-
         # TODO: New infected entities should inherit the property from the infected entity.
         # TODO: Entities heal after 20 steps if not dead (1 step per second) and turn into immune entities.
         # TODO: After every step, log the amount of sintomáticos, assintomáticos, curados e mortos.
@@ -31,7 +28,8 @@ class World:
         infected_entities_positions = self.get_infected_entities()
         for position in infected_entities_positions:
             infected_entity = self.get_tile(position=position)
-            self.infect_neighbors(infected_entity)
+            self.infect_neighbors(infected_entity=infected_entity)
+            self.move_infected_entity(infected_entity=infected_entity)
         self.save_state()
 
     def save_state(self) -> None:
@@ -78,6 +76,18 @@ class World:
             The content of the selected tile.
         """
         return self.tiles[position]
+
+    def swap_tiles(self, old_pos: tuple[int, int], new_pos: tuple[int, int]) -> None:
+        """Swap the information between two tiles in this world.
+
+        Parameters
+        ----------
+        old_pos : tuple[int, int]
+            The position that'll be swapped with new_pos.
+        new_pos : tuple[int, int]
+            The position that'll be swapped with old_pos.
+        """
+        self.tiles[new_pos], self.tiles[old_pos] = self.tiles[old_pos], self.tiles[new_pos]
 
     def update_tile(self, position: tuple[int, int], is_infected: bool, is_immune: bool) -> None:
         """Spawn a new entity in a tile.
@@ -157,6 +167,19 @@ class World:
             if self.is_tile_empty(position=(tile_x, tile_y)):
                 self.update_tile(position=(tile_x, tile_y), is_infected=True, is_immune=False)
                 spawned_infected_entity = True
+
+    def move_infected_entity(self, infected_entity: Entity) -> None:
+        """Randomly move an infected entity.
+
+        Parameters
+        ----------
+        infected_entity : Entity
+            The infected entity that'll be randomly moved.
+        """
+        old_pos = infected_entity.position
+        infected_entity.move_randomly(world_size=self.get_world_size())
+        new_pos = infected_entity.position
+        self.swap_tiles(old_pos=old_pos, new_pos=new_pos)
 
     def infect_neighbors(self, infected_entity: Entity) -> None:
         """Tries to infect every adjacent entity.
