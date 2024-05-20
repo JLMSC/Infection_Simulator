@@ -1,4 +1,5 @@
 """File responsible for everything related to an entity."""
+from typing import Callable, Any
 import numpy as np
 
 
@@ -6,9 +7,30 @@ import numpy as np
 from .entity_type import EntityType
 
 
-# TODO: Add variable to count the amount of steps alive.
+def ensure_alive(func) -> Callable[..., Any]:
+    """Custom decorator to check if an entity is alive."""
+    def wrapper(self, *args, **kwargs) -> Any:
+        if getattr(self, '__is_alive', True):
+            return func(self, *args, **kwargs)
+    return wrapper
+
+
+# TODO: ADd func to heal infected entities. (also turn them immune)
 class Entity:
     """Represents an entity, both healthy or infected."""
+
+    is_alive: bool = True
+    # NOTE: ADD to wrapper ???
+    # NOTE: Increase by 1 every iteration.
+    iterations_alive: int = 0
+
+    # Available symptoms for this entity.
+    __death: str = 'MORTE'
+    __severe: str = 'GRAVE'
+    __symptomatic: str = 'SINTOMÁTICO'
+    __asymptomatic: str = 'ASSINTOMÁTICO'
+    symptoms: list = [__symptomatic, __asymptomatic, __severe, __death]
+
 
     def __init__(self, position: tuple[int, int], is_infected: bool, is_immune: bool) -> None:
         """Initializes an entity at a specified position.
@@ -26,8 +48,9 @@ class Entity:
         self.is_infected: bool = is_infected
         self.is_immune: bool = is_immune if not is_infected else False
         self.entity_type: EntityType = self.define_entity_type()
-        self.get_symptoms()
+        self.symptom: str = self.get_symptom()
 
+    @ensure_alive
     def define_entity_type(self) -> EntityType:
         """Define the entity's type.
 
@@ -40,6 +63,7 @@ class Entity:
             return EntityType.HEALTHY
         return EntityType.INFECTED
 
+    @ensure_alive
     def change_entity_type(self) -> None:
         """Change the entity's type."""
         if self.entity_type == EntityType.HEALTHY:
@@ -47,6 +71,7 @@ class Entity:
         else:
             self.entity_type = EntityType.HEALTHY
 
+    @ensure_alive
     def move_randomly(self, world_size: int) -> None:
         """Randomly move this entity to an adjacent position."""
         adjacent_offsets = ((1, 0), (-1, 0), (0, -1), (0, 1))
@@ -55,6 +80,7 @@ class Entity:
         next_position_y = (selected_offset[1] + self.position[1] + world_size) % world_size
         self.update_position(new_position=(next_position_x, next_position_y))
 
+    @ensure_alive
     def update_position(self, new_position: tuple[int, int]) -> None:
         """Updates the entity's position.
 
@@ -65,18 +91,55 @@ class Entity:
         """
         self.position = new_position
 
-    def get_symptoms(self) -> None:
+    @ensure_alive
+    def get_symptom(self) -> str | None:
         """Defines the symptoms for an infected entity."""
         if self.is_infected:
-            symptoms = ['SINTOMATICO', 'ASSINTOMATICO', 'GRAVE', 'MORTE']
             probabilities = [0.20, 0.20, 0.02, 0.0119]
             # Normalize the probabilities, making the sum up to 1 (or 100%).
             probs_normalized = [prob / sum(probabilities) for prob in probabilities]
-            self.symptom = np.random.choice(a=symptoms, p=probs_normalized)
+            current_symptom = np.random.choice(a=self.symptoms, p=probs_normalized)
+            if Entity.is_death(symptom=current_symptom):
+                self.die()
+            return current_symptom
+        return None # This should not happen.
 
+    @ensure_alive
     def get_infected(self) -> None:
-        """Turn this entity into a infected entity if it's neither immune nor infected."""
+        """Turn this entity into a infected entity if it's neither immune nor infected nor dead."""
         if not (self.is_immune or self.is_infected):
             self.is_infected = True
             self.change_entity_type()
-            self.get_symptoms()
+            self.symptom = self.get_symptom()
+
+    @ensure_alive
+    def can_live(self) -> None:
+        """Checks if this entity can live to see another day."""
+        if Entity.is_severe(symptom=self.symptom):
+            if np.random.random() > 0.2: # 80% chance of death.
+                self.die()
+
+    @ensure_alive
+    def die(self) -> None:
+        """Instant death."""
+        self.is_alive = False
+
+    @staticmethod
+    def is_death(symptom: str) -> bool:
+        """Check if a symptom is death."""
+        return symptom == Entity.__death
+
+    @staticmethod
+    def is_severe(symptom: str) -> bool:
+        """Check if a symptom is severe."""
+        return symptom == Entity.__severe
+
+    @staticmethod
+    def is_symptomatic(symptom: str) -> bool:
+        """Check if a symptom is symptomatic."""
+        return symptom == Entity.__symptomatic
+
+    @staticmethod
+    def is_asymptomatic(symptom: str) -> bool:
+        """Check if a symptom is asymptomatic."""
+        return symptom == Entity.__asymptomatic
