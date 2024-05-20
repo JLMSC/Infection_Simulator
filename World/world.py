@@ -19,7 +19,6 @@ class World:
         self.add_healthy_entities()
         self.save_state()
 
-        # TODO: New infected entities should inherit the property from the infected entity.
         # TODO: Entities heal after 20 steps if not dead (1 step per second) and turn into immune entities.
         # TODO: After every step, log the amount of sintomáticos, assintomáticos, curados e mortos.
 
@@ -43,9 +42,12 @@ class World:
                     file.write(f'{entity_repr} ')
                 file.write('\n')
             file.write('=' * 20 + '\n')
-            file.write('\n' * 3)
+            file.write(f'Casos sintomáticos: {self.count_symptomatics()}\n')
+            file.write(f'Casos assintomáticos: {self.count_asymptomatics()}\n')
+            file.write(f'Casos graves: {self.count_severes()}\n')
+            file.write(f'Mortes: {self.count_deaths()}\n')
+            file.write('=' * 20 + '\n' * 3)
             file.close()
-            # TODO: Add more info at the end. (infected, healthy, immune count etc.)
 
     def clear_state(self) -> None:
         """Clears every info in 'world_state.txt'."""
@@ -53,84 +55,56 @@ class World:
             file.close()
 
     def get_world_size(self) -> int:
-        """Get the world size.
-
-        Returns
-        -------
-        int
-            The world size.
-        """
+        """Get the world size."""
         return np.random.choice(a=self.shape)
 
     def get_tile(self, position: tuple[int, int]) -> Entity:
-        """Get the content at a specified tile by its position.
-
-        Parameters
-        ----------
-        position : tuple[int, int]
-            The tile's position.
-
-        Returns
-        -------
-        Entity
-            The content of the selected tile.
-        """
+        """Get the content at a specified tile by its position."""
         return self.tiles[position]
 
     def swap_tiles(self, old_pos: tuple[int, int], new_pos: tuple[int, int]) -> None:
-        """Swap the information between two tiles in this world.
-
-        Parameters
-        ----------
-        old_pos : tuple[int, int]
-            The position that'll be swapped with new_pos.
-        new_pos : tuple[int, int]
-            The position that'll be swapped with old_pos.
-        """
+        """Swap the information between two tiles in this world."""
         self.tiles[new_pos], self.tiles[old_pos] = self.tiles[old_pos], self.tiles[new_pos]
 
     def update_tile(self, position: tuple[int, int], is_infected: bool, is_immune: bool) -> None:
-        """Spawn a new entity in a tile.
-
-        Parameters
-        ----------
-        position : tuple[int, int]
-            The tile where the entity will be spawned.
-        is_infected : bool
-            If the entity is infected.
-        is_immune : bool
-            If the entity is immune.
-        """
+        """Spawn a new entity in a tile."""
         entity = Entity(position=position, is_infected=is_infected, is_immune=is_immune)
         self.tiles[position] = entity
 
     def get_random_tile(self) -> tuple[int, int]:
-        """Randomly select a tile and return its position.
-
-        Returns
-        -------
-        tuple[int, int]
-            The random selected tile's position.
-        """
+        """Randomly select a tile and return its position."""
         rows, cols = self.shape
         tile_x = np.random.randint(low=0, high=rows)
         tile_y = np.random.randint(low=0, high=cols)
         return tile_x, tile_y
 
     def is_tile_empty(self, position: tuple[int, int]) -> bool:
-        """Check if a tile is an empty tile.
-
-        Parameters
-        ----------
-        position : tuple[int, int]
-            The tile's position.
-
-        Returns
-        -------
-        bool
-            Whether or not the tile is empty.
-        """
+        """Check if a tile at position is an empty tile."""
         return self.tiles[position] is None
+
+    def count_symptomatics(self) -> int:
+        """Count the amount of symptomatic entities in the world."""
+        mask = np.array(object=[[Entity.is_symptomatic(symptom=entity.symptom) for entity in row] for row in self.tiles])
+        indexes = np.where(mask)
+        return len(tuple(zip(indexes[0], indexes[1])))
+
+    def count_asymptomatics(self) -> int:
+        """Count the amount of asymptomatic entities in the world."""
+        mask = np.array(object=[[Entity.is_asymptomatic(symptom=entity.symptom) for entity in row] for row in self.tiles])
+        indexes = np.where(mask)
+        return len(tuple(zip(indexes[0], indexes[1])))
+
+    def count_severes(self) -> int:
+        """Count the amount of severe entities in the world."""
+        mask = np.array(object=[[Entity.is_severe(symptom=entity.symptom) for entity in row] for row in self.tiles])
+        indexes = np.where(mask)
+        return len(tuple(zip(indexes[0], indexes[1])))
+
+    def count_deaths(self) -> int:
+        """Count the amount of dead entities in the world."""
+        mask = np.array(object=[[Entity.is_death(symptom=entity.symptom) for entity in row] for row in self.tiles])
+        indexes = np.where(mask)
+        return len(tuple(zip(indexes[0], indexes[1])))
 
     def add_immune_entities(self) -> None:
         """Transform 5% of population into immune healthy entities."""
@@ -143,13 +117,7 @@ class World:
                 immune_entities_amount -= 1
 
     def get_infected_entities(self) -> tuple[tuple[int, int], ...]:
-        """Get the position of every infected entity.
-
-        Returns
-        -------
-        tuple[tuple[int, int], ...]
-            The position of every infected entity.
-        """
+        """Get a tuple of tuples with every infected entity position in the world."""
         # Temporary dummy target to search for in world's tiles.
         dummy_entity_type = Entity(position=(-1, -1), is_infected=True, is_immune=False).entity_type
         # Temporary array with same entity type as the dummy target.
@@ -169,43 +137,16 @@ class World:
                 spawned_infected_entity = True
 
     def move_infected_entity(self, infected_entity: Entity) -> None:
-        """Randomly move an infected entity.
-
-        Parameters
-        ----------
-        infected_entity : Entity
-            The infected entity that'll be randomly moved.
-        """
+        """Randomly move an specified infected entity."""
         old_pos = infected_entity.position
         infected_entity.move_randomly(world_size=self.get_world_size())
         new_pos = infected_entity.position
         self.swap_tiles(old_pos=old_pos, new_pos=new_pos)
 
     def infect_neighbors(self, infected_entity: Entity) -> None:
-        """Tries to infect every adjacent entity.
-
-        Parameters
-        ----------
-        infected_entity : Entity
-            The infected entity that'll try to infect its adjacents.
-        """
+        """Tries to infect every entity adjacent to a specified infected entity."""
         def calculate_position(entity_position: tuple[int, int], offset: tuple[int, int], world_size: int) -> tuple[int, int]:
-            """Calculates the entity's position plus offest in a circular world.
-
-            Parameters
-            ----------
-            entity_postion : tuple[int, int]
-                The entity's position.
-            offset : tuple[int, int]
-                The position's offset.
-            world_size : int
-                The world size.
-
-            Returns
-            -------
-            tuple[int, int]
-                The entity's position plus the offset.
-            """
+            """Calculates the entity's position plus offest in a circular world."""
             position_x = (offset[0] + entity_position[0] + world_size) % world_size
             position_y = (offset[1] + entity_position[1] + world_size) % world_size
             return position_x, position_y
