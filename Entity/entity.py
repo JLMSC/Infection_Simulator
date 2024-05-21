@@ -15,14 +15,11 @@ def ensure_alive(func) -> Callable[..., Any]:
     return wrapper
 
 
-# TODO: ADd func to heal infected entities. (also turn them immune)
 class Entity:
     """Represents an entity, both healthy or infected."""
 
     is_alive: bool = True
-    # NOTE: ADD to wrapper ???
-    # NOTE: Increase by 1 every iteration.
-    iterations_alive: int = 0
+    life_span: int = 0
 
     # Available symptoms for this entity.
     __death: str = 'MORTE'
@@ -113,6 +110,13 @@ class Entity:
             self.symptom = self.get_symptom()
 
     @ensure_alive
+    def get_healed(self) -> None:
+        """Heals this entity and make it immune."""
+        if self.is_infected:
+            self.entity_type = EntityType.HEALED
+            self.is_immune = True
+
+    @ensure_alive
     def can_live(self) -> None:
         """Checks if this entity can live to see another day."""
         if Entity.is_severe(symptom=self.symptom):
@@ -120,9 +124,18 @@ class Entity:
                 self.die()
 
     @ensure_alive
+    def increase_life_span(self) -> None:
+        """Increase this entity's life span."""
+        if self.is_infected:
+            if self.life_span >= 20:
+                self.get_healed()
+            self.life_span += 1
+
+    @ensure_alive
     def die(self) -> None:
         """Instant death."""
         self.is_alive = False
+        self.entity_type = EntityType.DEAD
 
     @staticmethod
     def is_death(symptom: str) -> bool:

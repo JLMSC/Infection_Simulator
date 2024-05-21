@@ -6,3 +6,5 @@ class EntityType(Enum):
     """Declares every entity type."""
     HEALTHY: str = '*' # type: ignore
     INFECTED: str = 'O' # type: ignore
+    DEAD: str = '+' # type: ignore
+    HEALED: str = '.' # type: ignore

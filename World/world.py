@@ -19,18 +19,17 @@ class World:
         self.add_healthy_entities()
         self.save_state()
 
-        # TODO: Entities heal after 20 steps if not dead (1 step per second) and turn into immune entities.
-        # TODO: After every step, log the amount of sintomáticos, assintomáticos, curados e mortos.
-
     def next_iteration(self) -> None:
         """Step into the next world iteration."""
         infected_entities_positions = self.get_infected_entities()
         for position in infected_entities_positions:
             infected_entity = self.get_tile(position=position)
+            infected_entity.increase_life_span()
             self.infect_neighbors(infected_entity=infected_entity)
             self.move_infected_entity(infected_entity=infected_entity)
         self.save_state()
 
+    # TODO: Move this to .csv
     def save_state(self) -> None:
         """Saves the current world state in 'world_state.txt'."""
         rows, cols = self.shape
@@ -46,6 +45,7 @@ class World:
             file.write(f'Casos assintomáticos: {self.count_asymptomatics()}\n')
             file.write(f'Casos graves: {self.count_severes()}\n')
             file.write(f'Mortes: {self.count_deaths()}\n')
+            file.write(f'Curados: {self.count_heals()}\n')
             file.write('=' * 20 + '\n' * 3)
             file.close()
 
@@ -103,6 +103,15 @@ class World:
     def count_deaths(self) -> int:
         """Count the amount of dead entities in the world."""
         mask = np.array(object=[[Entity.is_death(symptom=entity.symptom) for entity in row] for row in self.tiles])
+        indexes = np.where(mask)
+        return len(tuple(zip(indexes[0], indexes[1])))
+
+    def count_heals(self) -> int:
+        """Count the amount of healed entities in the world."""
+        dummy_healed_type = Entity(position=(-1, -1), is_infected=True, is_immune=False)
+        dummy_healed_type.get_healed()
+        dummy_healed_type = dummy_healed_type.entity_type
+        mask = np.array(object=[[entity.entity_type == dummy_healed_type for entity in row] for row in self.tiles])
         indexes = np.where(mask)
         return len(tuple(zip(indexes[0], indexes[1])))
 
