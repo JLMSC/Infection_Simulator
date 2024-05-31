@@ -10,49 +10,104 @@ from Entity.entity import Entity
 class World:
     """Represents a world with random living entities."""
 
+    iteration_step: int = 0
+
     def __init__(self, shape: int) -> None:
         self.shape: tuple[int, int] = (shape, shape)
         self.tiles: np.ndarray = np.empty(shape=self.shape, dtype=object)
-        self.clear_state()
         self.add_immune_entities()
         self.add_infected_entity()
         self.add_healthy_entities()
-        self.save_state()
+        self.create_data_file()
 
     def next_iteration(self) -> None:
         """Step into the next world iteration."""
-        infected_entities_positions = self.get_infected_entities()
+        self.save_state()
+        target_entity_type = Entity(position=(-1, -1), is_infected=True, is_immune=False).entity_type
+        infected_entities_positions = self.get_matching_entity_type_positions(target_entity_type=target_entity_type)
+        del target_entity_type
         for position in infected_entities_positions:
             infected_entity = self.get_tile(position=position)
             infected_entity.increase_life_span()
             self.infect_neighbors(infected_entity=infected_entity)
             self.move_infected_entity(infected_entity=infected_entity)
-        self.save_state()
+            del infected_entity
+        del infected_entities_positions
+        self.iteration_step += 1
 
-    # TODO: Move this to .csv
+    def create_data_file(self) -> None:
+        """Creates an .csv data file for this world with only the headers."""
+        with open(file='world_data.csv', mode='w', encoding='utf-8') as file:
+            # 'Iteration' -> The iteration number.
+            # 'Immune' -> The amount of immune entities.
+            # 'Healthy' -> The amount of healthy entities.
+            # 'Infected' -> The amount of infected entities.
+            # 'Healed' -> The amount of healed entities.
+            # 'Symptomatic' -> The amount of symptomatic entities.
+            # 'Asymptomatic' -> The amount of asymptomatic entities.
+            # 'Severe' -> The amount of severe mortality status.
+            # 'Normal' -> The amount of normal mortality status.
+            # 'Dead' -> The amount of dead entities.
+            file.write('Iteration,Immune,Healthy,Infected,Healed,Symptomatic,Asymptomatic,Severe,Normal,Dead\n')
+            file.close()
+
     def save_state(self) -> None:
         """Saves the current world state in 'world_state.txt'."""
-        rows, cols = self.shape
-        with open(file='world_state.txt', mode='a', encoding='utf-8') as file:
-            file.write('=' * 20 + '\n')
-            for i in range(rows):
-                for j in range(cols):
-                    entity_repr = self.get_tile(position=(i, j)).entity_type.value
-                    file.write(f'{entity_repr} ')
-                file.write('\n')
-            file.write('=' * 20 + '\n')
-            file.write(f'Casos sintomáticos: {self.count_symptomatics()}\n')
-            file.write(f'Casos assintomáticos: {self.count_asymptomatics()}\n')
-            file.write(f'Casos graves: {self.count_severes()}\n')
-            file.write(f'Mortes: {self.count_deaths()}\n')
-            file.write(f'Curados: {self.count_heals()}\n')
-            file.write('=' * 20 + '\n' * 3)
+        with open(file='world_data.csv', mode='a', encoding='utf-8') as file:
+            # Current iteration.
+            file.write(f'{self.iteration_step},')
+            # Immune entity count.
+            immune_target_entity_type = Entity(position=(-1, -1), is_infected=False, is_immune=True).entity_type
+            immune_count = len(self.get_matching_entity_type_positions(target_entity_type=immune_target_entity_type))
+            file.write(f'{immune_count},')
+            del immune_target_entity_type, immune_count
+            # Healthy entity count.
+            healthy_target_entity_type = Entity(position=(-1, -1), is_infected=False, is_immune=False).entity_type
+            healthy_count = len(self.get_matching_entity_type_positions(target_entity_type=healthy_target_entity_type))
+            file.write(f'{healthy_count},')
+            del healthy_target_entity_type, healthy_count
+            # Infected entity count.
+            infected_target_entity_type = Entity(position=(-1, -1), is_infected=True, is_immune=False).entity_type
+            infected_count = len(self.get_matching_entity_type_positions(target_entity_type=infected_target_entity_type))
+            file.write(f'{infected_count},')
+            del infected_target_entity_type, infected_count
+            # Healed entity count.
+            healed_target_entity_type = Entity(position=(-1, -1), is_infected=True, is_immune=False)
+            healed_target_entity_type.heal()
+            healed_target_entity_type = healed_target_entity_type.entity_type
+            healed_count = len(self.get_matching_entity_type_positions(target_entity_type=healed_target_entity_type))
+            file.write(f'{healed_count},',)
+            del healed_target_entity_type, healed_count
+            # Symptomatic status count.
+            file.write(f'{self.count_symptom_status(target_symptom_status="SINTOMÁTICO")},')
+            # Asymptomatic status count.
+            file.write(f'{self.count_symptom_status(target_symptom_status="ASSINTOMÁTICO")},')
+            # Severe status count.
+            file.write(f'{self.count_mortality_status(target_mortality_status="GRAVE")},')
+            # Normal status count.
+            file.write(f'{self.count_mortality_status(target_mortality_status="NORMAL")},')
+            # Dead status count.
+            file.write(f'{self.count_survival_status(target_survival_status="MORTE")}\n')
+            # Close the file.
             file.close()
 
-    def clear_state(self) -> None:
-        """Clears every info in 'world_state.txt'."""
-        with open(file='world_state.txt', mode='w', encoding='utf-8') as file:
-            file.close()
+        # Use this code if you want to see the representation of the world every iteration. (creates a new file)
+        # rows, cols = self.shape
+        # with open(file='world_state.txt', mode='a', encoding='utf-8') as file:
+        #     file.write('=' * 20 + '\n')
+        #     for i in range(rows):
+        #         for j in range(cols):
+        #             entity_repr = self.get_tile(position=(i, j)).entity_type.value
+        #             file.write(f'{entity_repr} ')
+        #         file.write('\n')
+        #     file.write('=' * 20 + '\n')
+        #     file.write(f'Casos sintomáticos: {self.count_symptom_status(target_symptom_status="SINTOMÁTICO")}\n')
+        #     file.write(f'Casos assintomáticos: {self.count_symptom_status(target_symptom_status="ASSINTOMÁTICO")}\n')
+        #     file.write(f'Casos graves: {self.count_mortality_status(target_mortality_status="GRAVE")}\n')
+        #     file.write(f'Mortes: {self.count_survival_status(target_survival_status="MORTE")}\n')
+        #     # file.write(f'Curados: {self.count_heals()}\n')
+        #     file.write('=' * 20 + '\n' * 3)
+        #     file.close()
 
     def get_world_size(self) -> int:
         """Get the world size."""
@@ -68,82 +123,73 @@ class World:
 
     def update_tile(self, position: tuple[int, int], is_infected: bool, is_immune: bool) -> None:
         """Spawn a new entity in a tile."""
-        entity = Entity(position=position, is_infected=is_infected, is_immune=is_immune)
-        self.tiles[position] = entity
+        self.tiles[position] = Entity(position=position, is_infected=is_infected, is_immune=is_immune)
 
     def get_random_tile(self) -> tuple[int, int]:
         """Randomly select a tile and return its position."""
         rows, cols = self.shape
         tile_x = np.random.randint(low=0, high=rows)
         tile_y = np.random.randint(low=0, high=cols)
+        del rows, cols
         return tile_x, tile_y
 
     def is_tile_empty(self, position: tuple[int, int]) -> bool:
         """Check if a tile at position is an empty tile."""
         return self.tiles[position] is None
 
-    def count_symptomatics(self) -> int:
-        """Count the amount of symptomatic entities in the world."""
-        mask = np.array(object=[[Entity.is_symptomatic(symptom=entity.symptom) for entity in row] for row in self.tiles])
+    def count_symptom_status(self, target_symptom_status: str) -> int:
+        """Count the amount of a target symptom status in the world."""
+        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_symptom_status, target_status=target_symptom_status) for entity in row] for row in self.tiles])
         indexes = np.where(mask)
-        return len(tuple(zip(indexes[0], indexes[1])))
+        count = len(tuple(zip(indexes[0], indexes[1])))
+        del mask, indexes
+        return count
 
-    def count_asymptomatics(self) -> int:
-        """Count the amount of asymptomatic entities in the world."""
-        mask = np.array(object=[[Entity.is_asymptomatic(symptom=entity.symptom) for entity in row] for row in self.tiles])
+    def count_mortality_status(self, target_mortality_status: str) -> int:
+        """Count the amount of a target mortality status in the world."""
+        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_mortality_status, target_status=target_mortality_status) for entity in row] for row in self.tiles])
         indexes = np.where(mask)
-        return len(tuple(zip(indexes[0], indexes[1])))
+        count = len(tuple(zip(indexes[0], indexes[1])))
+        del mask, indexes
+        return count
 
-    def count_severes(self) -> int:
-        """Count the amount of severe entities in the world."""
-        mask = np.array(object=[[Entity.is_severe(symptom=entity.symptom) for entity in row] for row in self.tiles])
+    def count_survival_status(self, target_survival_status: str) -> int:
+        """Count the amount of a target survival status in the world."""
+        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_survival_status, target_status=target_survival_status) for entity in row] for row in self.tiles])
         indexes = np.where(mask)
-        return len(tuple(zip(indexes[0], indexes[1])))
-
-    def count_deaths(self) -> int:
-        """Count the amount of dead entities in the world."""
-        mask = np.array(object=[[Entity.is_death(symptom=entity.symptom) for entity in row] for row in self.tiles])
-        indexes = np.where(mask)
-        return len(tuple(zip(indexes[0], indexes[1])))
-
-    def count_heals(self) -> int:
-        """Count the amount of healed entities in the world."""
-        dummy_healed_type = Entity(position=(-1, -1), is_infected=True, is_immune=False)
-        dummy_healed_type.get_healed()
-        dummy_healed_type = dummy_healed_type.entity_type
-        mask = np.array(object=[[entity.entity_type == dummy_healed_type for entity in row] for row in self.tiles])
-        indexes = np.where(mask)
-        return len(tuple(zip(indexes[0], indexes[1])))
+        count = len(tuple(zip(indexes[0], indexes[1])))
+        del mask, indexes
+        return count
 
     def add_immune_entities(self) -> None:
         """Transform 5% of population into immune healthy entities."""
         immune_entities_amount = int(np.round((reduce(np.multiply, self.shape) - 1) * 0.05))
         while immune_entities_amount > 0:
             tile_x, tile_y = self.get_random_tile()
-
             if self.is_tile_empty(position=(tile_x, tile_y)):
                 self.update_tile(position=(tile_x, tile_y), is_infected=False, is_immune=True)
                 immune_entities_amount -= 1
+            del tile_x, tile_y
+        del immune_entities_amount
 
-    def get_infected_entities(self) -> tuple[tuple[int, int], ...]:
-        """Get a tuple of tuples with every infected entity position in the world."""
-        # Temporary dummy target to search for in world's tiles.
-        dummy_entity_type = Entity(position=(-1, -1), is_infected=True, is_immune=False).entity_type
-        # Temporary array with same entity type as the dummy target.
-        mask = np.array(object=[[entity.entity_type == dummy_entity_type for entity in row] for row in self.tiles])
-        # Returns the location of those matching entities type.
+    def get_matching_entity_type_positions(self, target_entity_type: object) -> tuple[tuple[int, int], ...]:
+        """Get the position of every matching entity type in this world."""
+        mask = np.array(object=[[entity.entity_type == target_entity_type for entity in row] for row in self.tiles])
         indexes = np.where(mask)
-        return tuple(zip(indexes[0], indexes[1]))
+        positions = tuple(zip(indexes[0], indexes[1]))
+        del mask, indexes
+        return positions
 
     def add_infected_entity(self) -> None:
         """Transform one random entity into a infected entity."""
         spawned_infected_entity = False
         while not spawned_infected_entity:
             tile_x, tile_y = self.get_random_tile()
-
             if self.is_tile_empty(position=(tile_x, tile_y)):
                 self.update_tile(position=(tile_x, tile_y), is_infected=True, is_immune=False)
                 spawned_infected_entity = True
+            del tile_x, tile_y
+        del spawned_infected_entity
 
     def move_infected_entity(self, infected_entity: Entity) -> None:
         """Randomly move an specified infected entity."""
@@ -151,6 +197,7 @@ class World:
         infected_entity.move_randomly(world_size=self.get_world_size())
         new_pos = infected_entity.position
         self.swap_tiles(old_pos=old_pos, new_pos=new_pos)
+        del old_pos, new_pos
 
     def infect_neighbors(self, infected_entity: Entity) -> None:
         """Tries to infect every entity adjacent to a specified infected entity."""
@@ -166,6 +213,8 @@ class World:
             adjacent_position = calculate_position(entity_position=infected_entity.position, offset=offset, world_size=self.get_world_size())
             adjacent_entity = self.get_tile(position=adjacent_position)
             adjacent_entity.get_infected()
+            del adjacent_position, adjacent_entity
+        del adjacent_offsets
 
     def add_healthy_entities(self) -> None:
         """Transform every other empty tile into a healthy entity."""
@@ -174,3 +223,5 @@ class World:
             for tile_y in range(0, col, 1):
                 if self.is_tile_empty(position=(tile_x, tile_y)):
                     self.update_tile(position=(tile_x, tile_y), is_infected=False, is_immune=False)
+            del tile_x, tile_y
+        del row, col
