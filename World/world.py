@@ -85,7 +85,12 @@ class World:
             # Normal status count.
             file.write(f'{self.count_mortality_status(target_mortality_status="NORMAL")},')
             # Dead status count.
-            file.write(f'{self.count_survival_status(target_survival_status="MORTE")}\n')
+            dead_target_entity_type = Entity(position=(-1, -1), is_infected=True, is_immune=False)
+            dead_target_entity_type.die()
+            dead_target_entity_type = dead_target_entity_type.entity_type
+            dead_count = len(self.get_matching_entity_type_positions(target_entity_type=dead_target_entity_type))
+            file.write(f'{dead_count}\n')
+            del dead_target_entity_type, dead_count
             # Close the file.
             file.close()
 
@@ -136,24 +141,24 @@ class World:
         return self.tiles[position] is None
 
     def count_symptom_status(self, target_symptom_status: str) -> int:
-        """Count the amount of a target symptom status in the world."""
-        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_symptom_status, target_status=target_symptom_status) for entity in row] for row in self.tiles])
+        """Count the amount of a target symptom status for every infected entity in the world."""
+        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_symptom_status, target_status=target_symptom_status) and entity.is_infected for entity in row] for row in self.tiles])
         indexes = np.where(mask)
         count = len(tuple(zip(indexes[0], indexes[1])))
         del mask, indexes
         return count
 
     def count_mortality_status(self, target_mortality_status: str) -> int:
-        """Count the amount of a target mortality status in the world."""
-        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_mortality_status, target_status=target_mortality_status) for entity in row] for row in self.tiles])
+        """Count the amount of a target mortality status for every infected entity in the world."""
+        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_mortality_status, target_status=target_mortality_status) and entity.is_infected for entity in row] for row in self.tiles])
         indexes = np.where(mask)
         count = len(tuple(zip(indexes[0], indexes[1])))
         del mask, indexes
         return count
 
     def count_survival_status(self, target_survival_status: str) -> int:
-        """Count the amount of a target survival status in the world."""
-        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_survival_status, target_status=target_survival_status) for entity in row] for row in self.tiles])
+        """Count the amount of a target survival status for every infected entity in the world."""
+        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_survival_status, target_status=target_survival_status) and entity.is_infected for entity in row] for row in self.tiles])
         indexes = np.where(mask)
         count = len(tuple(zip(indexes[0], indexes[1])))
         del mask, indexes
