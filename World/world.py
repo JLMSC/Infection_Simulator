@@ -142,7 +142,7 @@ class World:
 
     def count_symptom_status(self, target_symptom_status: str) -> int:
         """Count the amount of a target symptom status for every infected entity in the world."""
-        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_symptom_status, target_status=target_symptom_status) and entity.is_infected for entity in row] for row in self.tiles])
+        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_symptom_status, target_status=target_symptom_status) and entity.is_infected and entity.is_alive for entity in row] for row in self.tiles])
         indexes = np.where(mask)
         count = len(tuple(zip(indexes[0], indexes[1])))
         del mask, indexes
@@ -150,7 +150,7 @@ class World:
 
     def count_mortality_status(self, target_mortality_status: str) -> int:
         """Count the amount of a target mortality status for every infected entity in the world."""
-        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_mortality_status, target_status=target_mortality_status) and entity.is_infected for entity in row] for row in self.tiles])
+        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_mortality_status, target_status=target_mortality_status) and entity.is_infected and entity.is_alive for entity in row] for row in self.tiles])
         indexes = np.where(mask)
         count = len(tuple(zip(indexes[0], indexes[1])))
         del mask, indexes
@@ -158,7 +158,7 @@ class World:
 
     def count_survival_status(self, target_survival_status: str) -> int:
         """Count the amount of a target survival status for every infected entity in the world."""
-        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_survival_status, target_status=target_survival_status) and entity.is_infected for entity in row] for row in self.tiles])
+        mask = np.array(object=[[Entity.is_equal(entity_status=entity.current_survival_status, target_status=target_survival_status) and entity.is_infected and entity.is_alive for entity in row] for row in self.tiles])
         indexes = np.where(mask)
         count = len(tuple(zip(indexes[0], indexes[1])))
         del mask, indexes
