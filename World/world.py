@@ -39,16 +39,16 @@ class World:
         """Creates an .csv data file for this world with only the headers."""
         with open(file='world_data.csv', mode='w', encoding='utf-8') as file:
             # 'Iteration' -> The iteration number.
-            # 'Immune' -> The amount of immune entities.
-            # 'Healthy' -> The amount of healthy entities.
             # 'Infected' -> The amount of infected entities.
             # 'Healed' -> The amount of healed entities.
+            # 'Immune' -> The amount of immune entities.
+            # 'Healthy' -> The amount of healthy entities.
             # 'Symptomatic' -> The amount of symptomatic entities.
             # 'Asymptomatic' -> The amount of asymptomatic entities.
             # 'Severe' -> The amount of severe mortality status.
             # 'Normal' -> The amount of normal mortality status.
             # 'Dead' -> The amount of dead entities.
-            file.write('Iteration,Immune,Healthy,Infected,Healed,Symptomatic,Asymptomatic,Severe,Normal,Dead\n')
+            file.write('Iteration,Infected,Healed,Immune,Healthy,Symptomatic,Asymptomatic,Severe,Normal,Dead\n')
             file.close()
 
     def save_state(self) -> None:
@@ -56,16 +56,6 @@ class World:
         with open(file='world_data.csv', mode='a', encoding='utf-8') as file:
             # Current iteration.
             file.write(f'{self.iteration_step},')
-            # Immune entity count.
-            immune_target_entity_type = Entity(position=(-1, -1), is_infected=False, is_immune=True).entity_type
-            immune_count = len(self.get_matching_entity_type_positions(target_entity_type=immune_target_entity_type))
-            file.write(f'{immune_count},')
-            del immune_target_entity_type, immune_count
-            # Healthy entity count.
-            healthy_target_entity_type = Entity(position=(-1, -1), is_infected=False, is_immune=False).entity_type
-            healthy_count = len(self.get_matching_entity_type_positions(target_entity_type=healthy_target_entity_type))
-            file.write(f'{healthy_count},')
-            del healthy_target_entity_type, healthy_count
             # Infected entity count.
             infected_target_entity_type = Entity(position=(-1, -1), is_infected=True, is_immune=False).entity_type
             infected_count = len(self.get_matching_entity_type_positions(target_entity_type=infected_target_entity_type))
@@ -77,7 +67,15 @@ class World:
             healed_target_entity_type = healed_target_entity_type.entity_type
             healed_count = len(self.get_matching_entity_type_positions(target_entity_type=healed_target_entity_type))
             file.write(f'{healed_count},',)
-            del healed_target_entity_type, healed_count
+            # Immune entity count.
+            immune_target_entity_type = Entity(position=(-1, -1), is_infected=False, is_immune=True).entity_type
+            immune_count = len(self.get_matching_entity_type_positions(target_entity_type=immune_target_entity_type))
+            file.write(f'{immune_count+healed_count},')
+            # Healthy entity count.
+            healthy_target_entity_type = Entity(position=(-1, -1), is_infected=False, is_immune=False).entity_type
+            healthy_count = len(self.get_matching_entity_type_positions(target_entity_type=healthy_target_entity_type))
+            file.write(f'{healthy_count+immune_count+healed_count},')
+            del healthy_target_entity_type, healthy_count, immune_target_entity_type, immune_count, healed_target_entity_type, healed_count
             # Symptomatic status count.
             file.write(f'{self.count_symptom_status(target_symptom_status="SINTOMÁTICO")},')
             # Asymptomatic status count.
