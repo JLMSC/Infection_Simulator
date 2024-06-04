@@ -137,6 +137,10 @@ class Entity:
         if self.is_infected:
             if self.life_span >= self.infection_duration:
                 self.heal()
+                # 80% of dying if severe every iteration.
+                if Entity.is_equal(entity_status=self.current_mortality_status, target_status='GRAVE'):
+                    if np.random.random() > 0.2:
+                        self.die()
             self.life_span += 1
 
     @ensure_alive
