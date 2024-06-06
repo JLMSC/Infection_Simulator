@@ -2,6 +2,8 @@
 such as it's dimension and living entities."""
 from functools import reduce
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 
 
 from Entity.entity import Entity
@@ -19,6 +21,34 @@ class World:
         self.add_infected_entity()
         self.add_healthy_entities()
         self.create_data_file()
+
+    def show_current_iteration_world_state(self) -> None:
+        """Draws the current world state in a plot."""
+        converted_tiles = np.vectorize(pyfunc=lambda entity: entity.entity_type.name)(self.tiles)
+        unique_values = np.unique(converted_tiles)
+        entity_type_matching_number = {entity_type: value for value, entity_type in enumerate(iterable=unique_values)}
+        converted_numeric_tiles = np.vectorize(pyfunc=lambda entity_type: entity_type_matching_number[entity_type])(converted_tiles)
+
+        # Colormap for every entity map.
+        color_map = {'HEALTHY': 'lightgreen', 'IMMUNE': 'pink', 'INFECTED': 'salmon', 'DEAD': 'black', 'HEALED': 'lightgreen'}
+        colors = [color_map[entity_type_name] for entity_type_name in unique_values]
+
+        plt.imshow(X=converted_numeric_tiles, cmap=ListedColormap(colors=colors), interpolation='nearest', extent=[0, 20, 0, 20])
+
+        # Creates a legend for every entity type.
+        legend_labels = list(entity_type_matching_number.keys())
+        legend_handles = [plt.Rectangle((0, 0), 1, 1, color=color) for color in colors]
+        plt.legend(legend_handles, legend_labels, loc='upper right', bbox_to_anchor=(1.35, 1))
+
+        del converted_tiles, unique_values, entity_type_matching_number, converted_numeric_tiles
+
+        # Remove the X and Y-axis metrics.
+        plt.xticks(ticks=[])
+        plt.yticks(ticks=[])
+
+        # Show the heatmap and set the interval between the plots.
+        plt.show(block=False)
+        plt.pause(interval=0.25)
 
     def next_iteration(self) -> None:
         """Step into the next world iteration."""
@@ -93,24 +123,6 @@ class World:
             del dead_target_entity_type, dead_count
             # Close the file.
             file.close()
-
-        # Use this code if you want to see the representation of the world every iteration. (creates a new file)
-        # rows, cols = self.shape
-        # with open(file='world_state.txt', mode='a', encoding='utf-8') as file:
-        #     file.write('=' * 20 + '\n')
-        #     for i in range(rows):
-        #         for j in range(cols):
-        #             entity_repr = self.get_tile(position=(i, j)).entity_type.value
-        #             file.write(f'{entity_repr} ')
-        #         file.write('\n')
-        #     file.write('=' * 20 + '\n')
-        #     file.write(f'Casos sintomáticos: {self.count_symptom_status(target_symptom_status="SINTOMÁTICO")}\n')
-        #     file.write(f'Casos assintomáticos: {self.count_symptom_status(target_symptom_status="ASSINTOMÁTICO")}\n')
-        #     file.write(f'Casos graves: {self.count_mortality_status(target_mortality_status="GRAVE")}\n')
-        #     file.write(f'Mortes: {self.count_survival_status(target_survival_status="MORTE")}\n')
-        #     # file.write(f'Curados: {self.count_heals()}\n')
-        #     file.write('=' * 20 + '\n' * 3)
-        #     file.close()
 
     def get_world_size(self) -> int:
         """Get the world size."""
